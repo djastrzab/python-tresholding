@@ -1,6 +1,7 @@
 import cv2 as cv
 import numpy as np
 import matplotlib.pyplot as plt
+import timeit
 
 
 def modified_gaussian(img_path, min_threshold, max_threshold, reach):
@@ -52,8 +53,6 @@ def parabola_gaussian(img_path, min_threshold, max_threshold, reach):
 
     output = grayscale_img.copy()
 
-    plot()
-
     height, width = grayscale_img.shape
     for h in range(height):
         for w in range(width):
@@ -65,6 +64,24 @@ def parabola_gaussian(img_path, min_threshold, max_threshold, reach):
     return output
 
 
+def parabola_gaussian_improved(img_path, min_threshold, max_threshold, reach):
+    original_img = cv.imread(img_path)
+    grayscale_img = cv.cvtColor(original_img, cv.COLOR_BGR2GRAY)
+    blurred_grayscale = cv.GaussianBlur(grayscale_img, (reach, reach), 0)
+
+    x = [0, 127, 255]
+    y = [min_threshold, 127, max_threshold]
+
+    A = np.matrix([[el**i for i in range(3)] for el in x], dtype=np.float64)
+    B = np.matrix(y, dtype=np.float64).T
+    coef = np.linalg.solve(A, B).A1
+
+    def threshold(x):
+        return coef[0]+x*coef[1]+(x**2)*coef[2]
+
+    return (grayscale_img >= threshold(np.array(blurred_grayscale, dtype=np.float64)))*255
+
+
 def gaussian(img_path, C, reach):
     original_img = cv.imread(img_path)
     grayscale_img = cv.cvtColor(original_img, cv.COLOR_BGR2GRAY)
@@ -73,24 +90,8 @@ def gaussian(img_path, C, reach):
 
 
 if __name__ == '__main__':
-    cv.imwrite("eg_lib.tif", gaussian("eg.jpg", 15, 31))
-    cv.imwrite("eg_linear.tif", modified_gaussian("eg.jpg", 70, 160, 31))
-    cv.imwrite("eg_parabolic.tif", parabola_gaussian("eg.jpg", 100, 230, 31))
-
-    cv.imwrite("zamek_lib.tif", gaussian("original.jpg", 15, 31))
-    cv.imwrite("zamek_linear.tif", modified_gaussian("original.jpg", 70, 160, 31))
-    cv.imwrite("zamek_parabolic.tif", parabola_gaussian("original.jpg", 100, 230, 31))
-
-    cv.imwrite("stas_lib.tif", gaussian("stas.jpg", 15, 31))
-    cv.imwrite("stas_linear.tif", modified_gaussian("stas.jpg", 70, 160, 31))
-    cv.imwrite("stas_parabolic.tif", parabola_gaussian("stas.jpg", 100, 230, 31))
-
-    cv.imwrite("zamek3_lib.tif", gaussian("zamek3.jpg", 15, 21))
-    cv.imwrite("zamek3_linear.tif", modified_gaussian("zamek3.jpg", 70, 160, 21))
-    cv.imwrite("zamek3_parabolic.tif", parabola_gaussian("zamek3.jpg", 90, 230, 11))
-
-    cv.imwrite("tekst1.tif", gaussian("tekst1.jpg", 6, 101))
-    cv.imwrite("tekst2.tif", gaussian("tekst2.jpg", 15, 101))
-
-
+    start = timeit.timeit()
+    cv.imwrite("zamek_parabolic_faster.tif", parabola_gaussian_improved("original.jpg", 100, 230, 31))
+    end = timeit.timeit()
+    print(end - start)
 
