@@ -1,9 +1,10 @@
-
+import sys
 
 import numpy as np
 import cv2
 from matplotlib import pyplot as plt
-
+from PyQt5 import QtWidgets
+from firstLayout import Ui_MainWindow
 
 
 def threshold():
@@ -22,5 +23,11 @@ def threshold():
     cv2.waitKey()
 
 if __name__ == '__main__':
-    threshold()
+    #threshold()
 
+    app = QtWidgets.QApplication(sys.argv)
+    window = QtWidgets.QMainWindow()
+    ui = Ui_MainWindow()
+    ui.setupUi(window)
+    window.show()
+    sys.exit(app.exec_())
