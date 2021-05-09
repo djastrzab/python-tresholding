@@ -11,7 +11,9 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
 from PyQt5.QtGui import QImage
+from adaptive import *
 import cv2, imutils
+import os
 
 
 class Ui_MainWindow(object):
@@ -32,10 +34,10 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy)
-        #self.label_4.setMaximumSize(QtCore.QSize(1000, 640))
+        # self.label_4.setMaximumSize(QtCore.QSize(1000, 640))
         self.label_4.setText("")
-        #self.label_4.setPixmap(QtGui.QPixmap("out.jpg"))
-        #self.label_4.setScaledContents(True)
+        # self.label_4.setPixmap(QtGui.QPixmap("out.jpg"))
+        # self.label_4.setScaledContents(True)
         self.label_4.setObjectName("label_4")
         self.horizontalLayout.addWidget(self.label_4)
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -50,6 +52,7 @@ class Ui_MainWindow(object):
         self.verticalSlider.setObjectName("verticalSlider")
         self.verticalSlider.setMaximum(255)
         self.verticalSlider.setMinimum(0)
+        self.verticalSlider.setValue(10)
 
         self.verticalLayout.addWidget(self.verticalSlider)
         self.label = QtWidgets.QLabel(self.centralwidget)
@@ -74,6 +77,7 @@ class Ui_MainWindow(object):
         self.verticalSlider_2.setObjectName("verticalSlider_2")
         self.verticalSlider_2.setMaximum(255)
         self.verticalSlider_2.setMinimum(0)
+        self.verticalSlider_2.setValue(230)
 
         self.verticalLayout_2.addWidget(self.verticalSlider_2)
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
@@ -98,6 +102,7 @@ class Ui_MainWindow(object):
         self.verticalSlider_3.setObjectName("verticalSlider_3")
         self.verticalSlider_3.setMaximum(255)
         self.verticalSlider_3.setMinimum(0)
+        self.verticalSlider_3.setValue(13)
 
         self.verticalLayout_3.addWidget(self.verticalSlider_3)
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
@@ -137,7 +142,7 @@ class Ui_MainWindow(object):
         self.verticalSlider_2.valueChanged['int'].connect(self.setMax)
         self.verticalSlider_3.valueChanged['int'].connect(self.setReach)
         self.pushButton.clicked.connect(self.loadImage)
-        self.pushButton_2.clicked.connect(self.label_4.clear)
+        self.pushButton_2.clicked.connect(self.savePhoto)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
         # lets add some variables
@@ -146,7 +151,7 @@ class Ui_MainWindow(object):
         self.tmp = None
         self.min = 0
         self.max = 255
-        self.reach = 12
+        self.reach = 13
 
     def loadImage(self):
         self.filename = QFileDialog.getOpenFileName(filter="Image (*.*)")[0]
@@ -154,28 +159,31 @@ class Ui_MainWindow(object):
         self.setPhoto(self.image)
 
     def setPhoto(self, image):
-        self.tmp = image
-        image = imutils.resize(image, width=640)
-        frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = QImage(frame, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
+        cv2.imwrite("buf.tif",image)
+        image=cv2.imread("buf.tif")
+        image = imutils.resize(image, width=1000)
+        image = QImage(image, image.shape[1], image.shape[0], image.strides[0], QImage.Format_RGB888)
         self.label_4.setPixmap(QtGui.QPixmap.fromImage(image))
 
     def setMax(self, value):
         self.max = value
+        self.updateImg()
 
     def setMin(self, value):
         self.min = value
-
+        self.updateImg()
 
     def setReach(self, value):
-        if(value % 2 == 0):
-            value=value+1
+        if (value % 2 == 0):
+            value = value + 1
         self.reach = value
+        self.updateImg()
 
     def updateImg(self):
-        img=self.image
-
+        img = parabola_gaussian_improved(self.filename, self.min, self.max, self.reach)
         self.setPhoto(img)
+    def savePhoto(self):
+        cv2.imwrite("out.tif",parabola_gaussian_improved(self.filename, self.min, self.max, self.reach))
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

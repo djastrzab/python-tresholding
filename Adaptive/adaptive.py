@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
-import matplotlib.pyplot as plt
-import timeit
+from matplotlib import pyplot as plt
+
 
 
 def modified_gaussian(img_path, min_threshold, max_threshold, reach):
@@ -89,9 +89,5 @@ def gaussian(img_path, C, reach):
     return output_img
 
 
-if __name__ == '__main__':
-    start = timeit.timeit()
-    cv.imwrite("zamek_parabolic_faster.tif", parabola_gaussian_improved("original.jpg", 100, 230, 31))
-    end = timeit.timeit()
-    print(end - start)
+
 

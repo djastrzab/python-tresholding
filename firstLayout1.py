@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'firstLayout.ui'
+# Form implementation generated from reading ui file 'firstLayout1.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -9,9 +9,6 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtWidgets import QFileDialog
-from PyQt5.QtGui import QImage
-import cv2, imutils
 
 
 class Ui_MainWindow(object):
@@ -32,10 +29,10 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.label_4.sizePolicy().hasHeightForWidth())
         self.label_4.setSizePolicy(sizePolicy)
-        #self.label_4.setMaximumSize(QtCore.QSize(1000, 640))
+        self.label_4.setMaximumSize(QtCore.QSize(640, 640))
         self.label_4.setText("")
-        #self.label_4.setPixmap(QtGui.QPixmap("out.jpg"))
-        #self.label_4.setScaledContents(True)
+        self.label_4.setPixmap(QtGui.QPixmap("out.jpg"))
+        self.label_4.setScaledContents(True)
         self.label_4.setObjectName("label_4")
         self.horizontalLayout.addWidget(self.label_4)
         self.verticalLayout = QtWidgets.QVBoxLayout()
@@ -46,11 +43,9 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.verticalSlider.sizePolicy().hasHeightForWidth())
         self.verticalSlider.setSizePolicy(sizePolicy)
+        self.verticalSlider.setMaximum(255)
         self.verticalSlider.setOrientation(QtCore.Qt.Vertical)
         self.verticalSlider.setObjectName("verticalSlider")
-        self.verticalSlider.setMaximum(255)
-        self.verticalSlider.setMinimum(0)
-
         self.verticalLayout.addWidget(self.verticalSlider)
         self.label = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -70,11 +65,9 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.verticalSlider_2.sizePolicy().hasHeightForWidth())
         self.verticalSlider_2.setSizePolicy(sizePolicy)
+        self.verticalSlider_2.setMaximum(255)
         self.verticalSlider_2.setOrientation(QtCore.Qt.Vertical)
         self.verticalSlider_2.setObjectName("verticalSlider_2")
-        self.verticalSlider_2.setMaximum(255)
-        self.verticalSlider_2.setMinimum(0)
-
         self.verticalLayout_2.addWidget(self.verticalSlider_2)
         self.label_2 = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
@@ -94,11 +87,9 @@ class Ui_MainWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.verticalSlider_3.sizePolicy().hasHeightForWidth())
         self.verticalSlider_3.setSizePolicy(sizePolicy)
+        self.verticalSlider_3.setMaximum(255)
         self.verticalSlider_3.setOrientation(QtCore.Qt.Vertical)
         self.verticalSlider_3.setObjectName("verticalSlider_3")
-        self.verticalSlider_3.setMaximum(255)
-        self.verticalSlider_3.setMinimum(0)
-
         self.verticalLayout_3.addWidget(self.verticalSlider_3)
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Minimum)
@@ -133,49 +124,12 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
 
         self.retranslateUi(MainWindow)
-        self.verticalSlider.valueChanged['int'].connect(self.setMin)
-        self.verticalSlider_2.valueChanged['int'].connect(self.setMax)
-        self.verticalSlider_3.valueChanged['int'].connect(self.setReach)
-        self.pushButton.clicked.connect(self.loadImage)
+        self.verticalSlider.valueChanged['int'].connect(self.label_4.setNum)
+        self.verticalSlider_2.valueChanged['int'].connect(self.label_4.setNum)
+        self.verticalSlider_3.valueChanged['int'].connect(self.label_4.setNum)
+        self.pushButton.clicked.connect(self.label_4.clear)
         self.pushButton_2.clicked.connect(self.label_4.clear)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
-        # lets add some variables
-
-        self.filename = None
-        self.tmp = None
-        self.min = 0
-        self.max = 255
-        self.reach = 12
-
-    def loadImage(self):
-        self.filename = QFileDialog.getOpenFileName(filter="Image (*.*)")[0]
-        self.image = cv2.imread(self.filename)
-        self.setPhoto(self.image)
-
-    def setPhoto(self, image):
-        self.tmp = image
-        image = imutils.resize(image, width=640)
-        frame = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = QImage(frame, frame.shape[1], frame.shape[0], frame.strides[0], QImage.Format_RGB888)
-        self.label_4.setPixmap(QtGui.QPixmap.fromImage(image))
-
-    def setMax(self, value):
-        self.max = value
-
-    def setMin(self, value):
-        self.min = value
-
-
-    def setReach(self, value):
-        if(value % 2 == 0):
-            value=value+1
-        self.reach = value
-
-    def updateImg(self):
-        img=self.image
-
-        self.setPhoto(img)
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
