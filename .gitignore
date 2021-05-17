@@ -3,6 +3,10 @@
 /.idea/*
 /Adaptive/build/*
 
+/Adaptive/__pycache__/*
+/Adaptive/GUI/build/*
+/Adaptive/GUI/__pycache__/*
+
 
 __init__.py
 config.py
@@ -10,6 +14,5 @@ config-3.py
 load_config_py2.py
 load_config_py3.py
 
-Adaptive/__pycache__/main.cpython-37.pyc
 Adaptive/main.spec
-Adaptive/__pycache__/firstLayout.cpython-37.pyc
+Adaptive/GUI/main.spec
