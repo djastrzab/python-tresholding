@@ -8,6 +8,7 @@ import sys
 import matplotlib.pyplot as plt
 import imutils
 
+
 def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_threshold):
 
     x = [0, 127, 255]
@@ -30,14 +31,44 @@ def gaussian(img, C, reach):
     return output_img
 
 
+def cubic_gaussian(img, blurred_img, min_threshold, mid_threshold, max_threshold):
+    h = 255 / 2
+    x = [0, 255 / 2, 255]
+    y = [min_threshold, mid_threshold, max_threshold]
+    A = np.matrix(
+        [[2 * h, h, 0],
+         [h, 4 * h, h],
+         [0, h, 2 * h]]
+        , dtype=np.float64).T
+
+    def delta(i):
+        return (y[i] - y[i - 1]) / h
+
+    b = np.matrix([delta(1), delta(2) - delta(1), -delta(2)], dtype=np.float64).T
+    sigmas = np.linalg.solve(A, b).A1
+
+    def threshold(val):
+        s1 = (y[0]
+              + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
+              + (3 * sigmas[0]) * (val - x[0]) ** 2
+              + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
+              ) * (val < 127.5)
+        s2 = (y[1]
+              + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
+              + (3 * sigmas[1]) * (val - x[1]) ** 2
+              + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
+              ) * (val >= 127.5)
+        return s1 + s2
+
+    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
+
+
 def make_slider(v_from, v_to):
     slider = QSlider(Qt.Vertical)
     slider.setMaximum(v_to)
     slider.setMinimum(v_from)
     slider.setTickInterval(1)
     return slider
-
-
 
 
 if __name__ == '__main__':
@@ -63,6 +94,8 @@ if __name__ == '__main__':
                 result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
             if mode == 2:
                 result_img = gaussian(image_to_process, cSlider.value(), reachSlider.value())
+            if mode == 3:
+                result_img = cubic_gaussian(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
             view_image = resize_img(result_img)
             h, w = view_image.shape
             pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
@@ -228,9 +261,40 @@ if __name__ == '__main__':
 
             ys = eval(xs)
             ax.plot(xs,ys)
-        else:
+        if mode == 2:
             ys = xs - cSlider.value()
             ax.plot(xs,ys)
+        if mode == 3:
+            h = 255/2
+            x = [0, 255/2, 255]
+            y = [minSlider.value(), midSlider.value(), maxSlider.value()]
+            A = np.matrix(
+                [[2 * h, h, 0],
+                 [h, 4 * h, h],
+                 [0, h, 2 * h]]
+                , dtype=np.float64).T
+
+            def delta(i):
+                return (y[i] - y[i - 1]) / h
+
+            b = np.matrix([delta(1), delta(2) - delta(1), -delta(2)], dtype=np.float64).T
+            sigmas = np.linalg.solve(A, b).A1
+
+            def threshold(val):
+                s1 = (y[0]
+                      + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
+                      + (3 * sigmas[0]) * (val - x[0]) ** 2
+                      + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
+                      ) * (val < 127.5)
+                s2 = (y[1]
+                      + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
+                      + (3 * sigmas[1]) * (val - x[1]) ** 2
+                      + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
+                      ) * (val >= 127.5)
+                return s1 + s2
+            ys = threshold(xs)
+            ax.plot(xs,ys)
+
         fig.show()
 
 
@@ -251,8 +315,46 @@ if __name__ == '__main__':
             slidersLinearFrame.hide()
         print(mode)
     chmodButton.clicked.connect(chmod)
-    buttonsBox.addWidget(chmodButton)
+    # buttonsBox.addWidget(chmodButton)
 
+
+    parabolaButton = QPushButton()
+    parabolaButton.setText("Tryb paraboli")
+    def change_mode_to_parabolic():
+        global mode
+        mode = 1
+        slidersParabolaFrame.show()
+        slidersLinearFrame.hide()
+        process_img()
+    parabolaButton.clicked.connect(change_mode_to_parabolic)
+
+
+    linearButton = QPushButton()
+    linearButton.setText("Tryb linowy")
+    def change_mode_to_linear():
+        global mode
+        mode = 2
+        slidersParabolaFrame.hide()
+        slidersLinearFrame.show()
+        process_img()
+
+    linearButton.clicked.connect(change_mode_to_linear)
+
+
+    cubicSplineButton = QPushButton()
+    cubicSplineButton.setText("Tryb szesciennych funkcji sklejanych")
+    def change_mode_to_cubic_spline():
+        global mode
+        mode = 3
+        slidersParabolaFrame.show()
+        slidersLinearFrame.hide()
+        process_img()
+
+    cubicSplineButton.clicked.connect(change_mode_to_cubic_spline)
+
+    buttonsBox.addWidget(parabolaButton)
+    buttonsBox.addWidget(linearButton)
+    buttonsBox.addWidget(cubicSplineButton)
 
 
     layout.addLayout(buttonsBox)
