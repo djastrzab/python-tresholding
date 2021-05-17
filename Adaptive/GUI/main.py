@@ -1,3 +1,4 @@
+import imutils
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import *
@@ -40,13 +41,20 @@ if __name__ == '__main__':
     result_img = None
 
 
+    def resize_img(image):
+        screen_resolution = QApplication.primaryScreen()
+        height = screen_resolution.size().height() - 140
+        view_image = imutils.resize(image, height=height)
+        return view_image
+
     def process_img():
         global result_img
         if image_to_process is not None:
             # print(minSlider.value(), midSlider.value(),maxSlider.value(), reachSlider.value())
             result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value(), reachSlider.value())
-            h, w = result_img.shape
-            pix = QPixmap.fromImage(QImage(result_img.data, w, h, w, QImage.Format.Format_Grayscale8))
+            view_image = resize_img(result_img)
+            h, w = view_image.shape
+            pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
             label_imageDisplay.setPixmap(pix.scaled(label_imageDisplay.size(), Qt.KeepAspectRatio))
 
     def open_image():
@@ -61,8 +69,9 @@ if __name__ == '__main__':
         image_to_process = cv.imread(filename, cv.IMREAD_GRAYSCALE)
         blurred_img = cv.GaussianBlur(image_to_process, (reach, reach), 0)
         print(image_to_process.data)
-        h, w = image_to_process.shape
-        pix = QPixmap.fromImage(QImage(image_to_process.data, w, h, w, QImage.Format.Format_Grayscale8))
+        view_image = resize_img(image_to_process)
+        h, w = view_image.shape
+        pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
         label_imageDisplay.setPixmap(pix)
 
 
