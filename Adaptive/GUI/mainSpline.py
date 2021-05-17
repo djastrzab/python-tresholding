@@ -8,19 +8,36 @@ import sys
 import matplotlib.pyplot as plt
 
 
-def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_threshold, reach):
-
-    x = [0, 127, 255]
+def cubic_gaussian(img, blurred_img, min_threshold, mid_threshold, max_threshold):
+    h = 255 / 2
+    x = [0, 255 / 2, 255]
     y = [min_threshold, mid_threshold, max_threshold]
+    A = np.matrix(
+        [[2 * h, h, 0],
+         [h, 4 * h, h],
+         [0, h, 2 * h]]
+        , dtype=np.float64).T
 
-    A = np.matrix([[el**i for i in range(3)] for el in x], dtype=np.float64)
-    B = np.matrix(y, dtype=np.float64).T
-    coef = np.linalg.solve(A, B).A1
+    def delta(i):
+        return (y[i] - y[i - 1]) / h
 
-    def threshold(x):
-        return coef[0]+x*coef[1]+(x**2)*coef[2]
+    b = np.matrix([delta(1), delta(2) - delta(1), -delta(2)], dtype=np.float64).T
+    sigmas = np.linalg.solve(A, b).A1
 
-    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64)))*255, dtype=np.uint8)
+    def threshold(val):
+        s1 = (y[0]
+              + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
+              + (3 * sigmas[0]) * (val - x[0]) ** 2
+              + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
+              ) * (val < 127.5)
+        s2 = (y[1]
+              + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
+              + (3 * sigmas[1]) * (val - x[1]) ** 2
+              + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
+              ) * (val >= 127.5)
+        return s1 + s2
+
+    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
 
 
 def make_slider(v_from, v_to):
@@ -39,12 +56,11 @@ if __name__ == '__main__':
     blurred_img = None
     result_img = None
 
-
     def process_img():
         global result_img
         if image_to_process is not None:
             # print(minSlider.value(), midSlider.value(),maxSlider.value(), reachSlider.value())
-            result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value(), reachSlider.value())
+            result_img = cubic_gaussian(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
             h, w = result_img.shape
             pix = QPixmap.fromImage(QImage(result_img.data, w, h, w, QImage.Format.Format_Grayscale8))
             label_imageDisplay.setPixmap(pix.scaled(label_imageDisplay.size(), Qt.KeepAspectRatio))
@@ -64,7 +80,6 @@ if __name__ == '__main__':
         h, w = image_to_process.shape
         pix = QPixmap.fromImage(QImage(image_to_process.data, w, h, w, QImage.Format.Format_Grayscale8))
         label_imageDisplay.setPixmap(pix)
-
 
     def save_image():
         if result_img is None:
@@ -164,17 +179,37 @@ if __name__ == '__main__':
     plotButton = QPushButton()
     plotButton.setText("Show Threshold Plot")
     def show_plot():
-        x = [0, 127, 255]
+        h = 255/2
+        x = [0, 255/2, 255]
         y = [minSlider.value(), midSlider.value(), maxSlider.value()]
 
-        A = np.matrix([[el ** i for i in range(3)] for el in x], dtype=np.float64)
-        B = np.matrix(y, dtype=np.float64).T
-        coef = np.linalg.solve(A, B).A1
-        xs = np.arange(0,255.1,0.1)
-        def eval(x):
-            return coef[0] + x * coef[1] + (x ** 2) * coef[2]
+        A = np.matrix(
+            [[2 * h, h, 0],
+             [h, 4 * h, h],
+             [0, h, 2 * h]]
+            , dtype=np.float64).T
 
-        ys = eval(xs)
+        def delta(i):
+            return (y[i] - y[i - 1]) / h
+
+        b = np.matrix([delta(1), delta(2) - delta(1), -delta(2)], dtype=np.float64).T
+        sigmas = np.linalg.solve(A, b).A1
+
+        def threshold(val):
+            s1 = (y[0]
+                  + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
+                  + (3 * sigmas[0]) * (val - x[0]) ** 2
+                  + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
+                  ) * (val < 127.5)
+            s2 = (y[1]
+                  + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
+                  + (3 * sigmas[1]) * (val - x[1]) ** 2
+                  + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
+                  ) * (val >= 127.5)
+            return s1 + s2
+
+        xs = np.arange(0,255.1,0.1)
+        ys = threshold(xs)
         fig, ax = plt.subplots()
         ax.plot(xs,ys)
         ax.set(ylim=(0,255))
@@ -183,16 +218,10 @@ if __name__ == '__main__':
     plotButton.clicked.connect(show_plot)
     buttonsBox.addWidget(plotButton)
 
-
-
     layout.addLayout(buttonsBox)
 
     window.setLayout(layout)
     window.showMaximized()
     app.exec()
-
-
-
-
 
 
