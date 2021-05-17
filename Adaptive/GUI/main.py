@@ -212,12 +212,14 @@ if __name__ == '__main__':
 
     slidersLinearFrame = QFrame()
     slidersParabolaFrame = QFrame()
+    slidersReachFrame = QFrame()
     slidersLinearFrame.setLayout(slidersLinearBox)
     slidersParabolaFrame.setLayout(slidersParabolaBox)
-
+    slidersReachFrame.setLayout(reachSliderBox)
 
     slidersAndPictureBox.addWidget(slidersParabolaFrame)
     slidersAndPictureBox.addWidget(slidersLinearFrame)
+    slidersAndPictureBox.addWidget(slidersReachFrame)
     slidersLinearFrame.hide()
 
     slidersAndPictureBox.addLayout(reachSliderBox)
