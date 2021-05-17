@@ -1,4 +1,3 @@
-import imutils
 from PyQt5.QtWidgets import *
 from PyQt5 import QtCore, QtGui
 from PyQt5.QtGui import *
@@ -7,9 +6,9 @@ import cv2 as cv
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
+import imutils
 
-
-def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_threshold, reach):
+def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_threshold):
 
     x = [0, 127, 255]
     y = [min_threshold, mid_threshold, max_threshold]
@@ -24,12 +23,21 @@ def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_thr
     return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64)))*255, dtype=np.uint8)
 
 
+def gaussian(img, C, reach):
+    if reach%2 == 0:
+        reach += 1
+    output_img = cv.adaptiveThreshold(img, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, reach, C)
+    return output_img
+
+
 def make_slider(v_from, v_to):
     slider = QSlider(Qt.Vertical)
     slider.setMaximum(v_to)
     slider.setMinimum(v_from)
     slider.setTickInterval(1)
     return slider
+
+
 
 
 if __name__ == '__main__':
@@ -39,7 +47,7 @@ if __name__ == '__main__':
     image_to_process = None
     blurred_img = None
     result_img = None
-
+    mode = 1
 
     def resize_img(image):
         screen_resolution = QApplication.primaryScreen()
@@ -51,11 +59,14 @@ if __name__ == '__main__':
         global result_img
         if image_to_process is not None:
             # print(minSlider.value(), midSlider.value(),maxSlider.value(), reachSlider.value())
-            result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value(), reachSlider.value())
+            if mode == 1:
+                result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
+            if mode == 2:
+                result_img = gaussian(image_to_process, cSlider.value(), reachSlider.value())
             view_image = resize_img(result_img)
             h, w = view_image.shape
             pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
-            label_imageDisplay.setPixmap(pix.scaled(label_imageDisplay.size(), Qt.KeepAspectRatio))
+            label_imageDisplay.setPixmap(pix)
 
     def open_image():
         global image_to_process
@@ -68,7 +79,6 @@ if __name__ == '__main__':
             return
         image_to_process = cv.imread(filename, cv.IMREAD_GRAYSCALE)
         blurred_img = cv.GaussianBlur(image_to_process, (reach, reach), 0)
-        print(image_to_process.data)
         view_image = resize_img(image_to_process)
         h, w = view_image.shape
         pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
@@ -143,11 +153,40 @@ if __name__ == '__main__':
             blurred_img = cv.GaussianBlur(image_to_process, (reach, reach), 0)
         process_img()
 
+
     reachSlider.valueChanged.connect(reach_value_changed)
 
-    slidersAndPictureBox.addLayout(minSliderBox)
-    slidersAndPictureBox.addLayout(midSliderBox)
-    slidersAndPictureBox.addLayout(maxSliderBox)
+    slidersParabolaBox = QHBoxLayout()
+    slidersParabolaBox.addLayout(minSliderBox)
+    slidersParabolaBox.addLayout(midSliderBox)
+    slidersParabolaBox.addLayout(maxSliderBox)
+
+    slidersLinearBox = QHBoxLayout()
+
+    cSliderBox = QVBoxLayout()
+    cSlider = make_slider(-20, 20)
+    cSlider.setValue(0)
+    cSliderBox.addWidget(cSlider)
+    cSliderBox.addWidget(QLabel("C"))
+    cSliderLabel = QLabel(str(cSlider.value()))
+    cSliderBox.addWidget(cSliderLabel)
+    def c_val_changed(new_val):
+        cSliderLabel.setText(str(new_val))
+        process_img()
+
+    cSlider.valueChanged.connect(c_val_changed)
+    slidersLinearBox.addLayout(cSliderBox)
+
+    slidersLinearFrame = QFrame()
+    slidersParabolaFrame = QFrame()
+    slidersLinearFrame.setLayout(slidersLinearBox)
+    slidersParabolaFrame.setLayout(slidersParabolaBox)
+
+
+    slidersAndPictureBox.addWidget(slidersParabolaFrame)
+    slidersAndPictureBox.addWidget(slidersLinearFrame)
+    slidersLinearFrame.hide()
+
     slidersAndPictureBox.addLayout(reachSliderBox)
     slidersAndPictureBox.addStretch(1)
     label_imageDisplay = QLabel()
@@ -173,24 +212,46 @@ if __name__ == '__main__':
     plotButton = QPushButton()
     plotButton.setText("Show Threshold Plot")
     def show_plot():
-        x = [0, 127, 255]
-        y = [minSlider.value(), midSlider.value(), maxSlider.value()]
-
-        A = np.matrix([[el ** i for i in range(3)] for el in x], dtype=np.float64)
-        B = np.matrix(y, dtype=np.float64).T
-        coef = np.linalg.solve(A, B).A1
-        xs = np.arange(0,255.1,0.1)
-        def eval(x):
-            return coef[0] + x * coef[1] + (x ** 2) * coef[2]
-
-        ys = eval(xs)
         fig, ax = plt.subplots()
-        ax.plot(xs,ys)
-        ax.set(ylim=(0,255))
+        xs = np.arange(0, 255.1, 0.1)
+        ax.set(ylim=(0, 255))
+
+        if mode == 1:
+            x = [0, 127, 255]
+            y = [minSlider.value(), midSlider.value(), maxSlider.value()]
+
+            A = np.matrix([[el ** i for i in range(3)] for el in x], dtype=np.float64)
+            B = np.matrix(y, dtype=np.float64).T
+            coef = np.linalg.solve(A, B).A1
+            def eval(x):
+                return coef[0] + x * coef[1] + (x ** 2) * coef[2]
+
+            ys = eval(xs)
+            ax.plot(xs,ys)
+        else:
+            ys = xs - cSlider.value()
+            ax.plot(xs,ys)
         fig.show()
+
 
     plotButton.clicked.connect(show_plot)
     buttonsBox.addWidget(plotButton)
+
+    chmodButton = QPushButton()
+    chmodButton.setText("Change Mode")
+    def chmod():
+        global mode
+        if mode == 1:
+            mode = 2
+            slidersParabolaFrame.hide()
+            slidersLinearFrame.show()
+        else:
+            mode = 1
+            slidersParabolaFrame.show()
+            slidersLinearFrame.hide()
+        print(mode)
+    chmodButton.clicked.connect(chmod)
+    buttonsBox.addWidget(chmodButton)
 
 
 
