@@ -2,6 +2,7 @@
 /venv/*
 /.idea/*
 /Adaptive/build/*
+/Adaptive/batch test/*
 
 /Adaptive/__pycache__/*
 /Adaptive/GUI/build/*

@@ -4,28 +4,28 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import cv2 as cv
 import numpy as np
-import sys
+import os
 import matplotlib.pyplot as plt
 import imutils
+import ntpath
 
 
-def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold,max_threshold):
-
+def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold, max_threshold):
     x = [0, 127, 255]
     y = [min_threshold, mid_threshold, max_threshold]
 
-    A = np.matrix([[el**i for i in range(3)] for el in x], dtype=np.float64)
+    A = np.matrix([[el ** i for i in range(3)] for el in x], dtype=np.float64)
     B = np.matrix(y, dtype=np.float64).T
     coef = np.linalg.solve(A, B).A1
 
     def threshold(x):
-        return coef[0]+x*coef[1]+(x**2)*coef[2]
+        return coef[0] + x * coef[1] + (x ** 2) * coef[2]
 
-    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64)))*255, dtype=np.uint8)
+    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
 
 
 def gaussian(img, C, reach):
-    if reach%2 == 0:
+    if reach % 2 == 0:
         reach += 1
     output_img = cv.adaptiveThreshold(img, 255, cv.ADAPTIVE_THRESH_GAUSSIAN_C, cv.THRESH_BINARY, reach, C)
     return output_img
@@ -80,33 +80,38 @@ if __name__ == '__main__':
     result_img = None
     mode = 1
 
+
     def resize_img(image):
         screen_resolution = QApplication.primaryScreen()
         height = screen_resolution.size().height() - 140
         view_image = imutils.resize(image, height=height)
         return view_image
 
+
     def process_img():
         global result_img
         if image_to_process is not None:
             # print(minSlider.value(), midSlider.value(),maxSlider.value(), reachSlider.value())
             if mode == 1:
-                result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
+                result_img = parabola_gaussian_img(image_to_process, blurred_img, minSlider.value(), midSlider.value(),
+                                                   maxSlider.value())
             if mode == 2:
                 result_img = gaussian(image_to_process, cSlider.value(), reachSlider.value())
             if mode == 3:
-                result_img = cubic_gaussian(image_to_process, blurred_img, minSlider.value(), midSlider.value(), maxSlider.value())
+                result_img = cubic_gaussian(image_to_process, blurred_img, minSlider.value(), midSlider.value(),
+                                            maxSlider.value())
             view_image = resize_img(result_img)
             h, w = view_image.shape
             pix = QPixmap.fromImage(QImage(view_image.data, w, h, w, QImage.Format.Format_Grayscale8))
             label_imageDisplay.setPixmap(pix)
 
+
     def open_image():
         global image_to_process
         global blurred_img
         reach = reachSlider.value()
-        if reach%2 == 0:
-            reach+=1
+        if reach % 2 == 0:
+            reach += 1
         filename = QFileDialog.getOpenFileName(filter="Image (*.*)")[0]
         if filename == "":
             return
@@ -118,6 +123,31 @@ if __name__ == '__main__':
         label_imageDisplay.setPixmap(pix)
 
 
+    def batch_mode():
+        global mode
+        reach = reachSlider.value()
+        if reach % 2 == 0:
+            reach += 1
+        filenames = QFileDialog.getOpenFileNames(filter="Image (*.*)")[0]
+        directory = QFileDialog.getExistingDirectory()
+        if filenames == "" or directory == "":
+            return
+        for file in filenames:
+            image = cv.imread(file, cv.IMREAD_GRAYSCALE)
+            blurred_image = cv.GaussianBlur(image, (reach, reach), 0)
+            if mode == 1:
+                result = parabola_gaussian_img(image, blurred_image, minSlider.value(), midSlider.value(),
+                                               maxSlider.value())
+            if mode == 2:
+                result = gaussian(image, cSlider.value(), reachSlider.value())
+            if mode == 3:
+                result = cubic_gaussian(image, blurred_image, minSlider.value(), midSlider.value(),
+                                        maxSlider.value())
+            filename=ntpath.basename(file)
+            cv.imwrite(os.path.join(directory, filename), result)
+
+
+
     def save_image():
         if result_img is None:
             return
@@ -127,6 +157,7 @@ if __name__ == '__main__':
         print(filename)
         cv.imwrite(filename, result_img)
 
+
     minSliderBox = QVBoxLayout()
     minSlider = make_slider(0, 255)
     minSlider.setMinimum(-20)
@@ -135,9 +166,12 @@ if __name__ == '__main__':
     minSliderBox.addWidget(QLabel("min"))
     minSliderBox.addWidget(minSliderLabel)
 
+
     def min_value_changed(new_value):
         minSliderLabel.setText(str(new_value))
         process_img()
+
+
     minSlider.valueChanged.connect(min_value_changed)
 
     midSliderBox = QVBoxLayout()
@@ -148,9 +182,12 @@ if __name__ == '__main__':
     midSliderBox.addWidget(QLabel("mid"))
     midSliderBox.addWidget(midSliderLabel)
 
+
     def mid_value_changed(new_value):
         midSliderLabel.setText(str(new_value))
         process_img()
+
+
     midSlider.valueChanged.connect(mid_value_changed)
 
     maxSliderBox = QVBoxLayout()
@@ -161,9 +198,12 @@ if __name__ == '__main__':
     maxSliderBox.addWidget(QLabel("max"))
     maxSliderBox.addWidget(maxSliderLabel)
 
+
     def max_value_changed(new_value):
         maxSliderLabel.setText(str(new_value))
         process_img()
+
+
     maxSlider.valueChanged.connect(max_value_changed)
 
     reachSliderBox = QVBoxLayout()
@@ -176,12 +216,13 @@ if __name__ == '__main__':
     reachSliderBox.addWidget(QLabel("reach"))
     reachSliderBox.addWidget(reachSliderLabel)
 
+
     def reach_value_changed(new_value):
         global blurred_img
         reachSliderLabel.setText(str(new_value))
         reach = new_value
-        if reach%2 == 0:
-            reach+=1
+        if reach % 2 == 0:
+            reach += 1
         if image_to_process is not None:
             blurred_img = cv.GaussianBlur(image_to_process, (reach, reach), 0)
         process_img()
@@ -203,9 +244,12 @@ if __name__ == '__main__':
     cSliderBox.addWidget(QLabel("C"))
     cSliderLabel = QLabel(str(cSlider.value()))
     cSliderBox.addWidget(cSliderLabel)
+
+
     def c_val_changed(new_val):
         cSliderLabel.setText(str(new_val))
         process_img()
+
 
     cSlider.valueChanged.connect(c_val_changed)
     slidersLinearBox.addLayout(cSliderBox)
@@ -226,7 +270,7 @@ if __name__ == '__main__':
     slidersAndPictureBox.addStretch(1)
     label_imageDisplay = QLabel()
     label_imageDisplay.sizeHint()
-    label_imageDisplay.setMinimumSize(1,1)
+    label_imageDisplay.setMinimumSize(1, 1)
     slidersAndPictureBox.addWidget(label_imageDisplay)
     slidersAndPictureBox.addStretch(1)
 
@@ -244,8 +288,15 @@ if __name__ == '__main__':
     saveButoon.clicked.connect(save_image)
     buttonsBox.addWidget(saveButoon)
 
+    batchButoon = QPushButton()
+    batchButoon.setText("Batch mode")
+    batchButoon.clicked.connect(batch_mode)
+    buttonsBox.addWidget(batchButoon)
+
     plotButton = QPushButton()
     plotButton.setText("Show Threshold Plot")
+
+
     def show_plot():
         fig, ax = plt.subplots()
         xs = np.arange(0, 255.1, 0.1)
@@ -258,17 +309,18 @@ if __name__ == '__main__':
             A = np.matrix([[el ** i for i in range(3)] for el in x], dtype=np.float64)
             B = np.matrix(y, dtype=np.float64).T
             coef = np.linalg.solve(A, B).A1
+
             def eval(x):
                 return coef[0] + x * coef[1] + (x ** 2) * coef[2]
 
             ys = eval(xs)
-            ax.plot(xs,ys)
+            ax.plot(xs, ys)
         if mode == 2:
             ys = xs - cSlider.value()
-            ax.plot(xs,ys)
+            ax.plot(xs, ys)
         if mode == 3:
-            h = 255/2
-            x = [0, 255/2, 255]
+            h = 255 / 2
+            x = [0, 255 / 2, 255]
             y = [minSlider.value(), midSlider.value(), maxSlider.value()]
             A = np.matrix(
                 [[2 * h, h, 0],
@@ -294,8 +346,9 @@ if __name__ == '__main__':
                       + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
                       ) * (val >= 127.5)
                 return s1 + s2
+
             ys = threshold(xs)
-            ax.plot(xs,ys)
+            ax.plot(xs, ys)
 
         fig.show()
 
@@ -305,6 +358,8 @@ if __name__ == '__main__':
 
     chmodButton = QPushButton()
     chmodButton.setText("Change Mode")
+
+
     def chmod():
         global mode
         if mode == 1:
@@ -316,23 +371,29 @@ if __name__ == '__main__':
             slidersParabolaFrame.show()
             slidersLinearFrame.hide()
         print(mode)
+
+
     chmodButton.clicked.connect(chmod)
     # buttonsBox.addWidget(chmodButton)
 
-
     parabolaButton = QPushButton()
     parabolaButton.setText("Tryb paraboli")
+
+
     def change_mode_to_parabolic():
         global mode
         mode = 1
         slidersParabolaFrame.show()
         slidersLinearFrame.hide()
         process_img()
-    parabolaButton.clicked.connect(change_mode_to_parabolic)
 
+
+    parabolaButton.clicked.connect(change_mode_to_parabolic)
 
     linearButton = QPushButton()
     linearButton.setText("Tryb linowy")
+
+
     def change_mode_to_linear():
         global mode
         mode = 2
@@ -340,11 +401,13 @@ if __name__ == '__main__':
         slidersLinearFrame.show()
         process_img()
 
-    linearButton.clicked.connect(change_mode_to_linear)
 
+    linearButton.clicked.connect(change_mode_to_linear)
 
     cubicSplineButton = QPushButton()
     cubicSplineButton.setText("Tryb szesciennych funkcji sklejanych")
+
+
     def change_mode_to_cubic_spline():
         global mode
         mode = 3
@@ -352,21 +415,15 @@ if __name__ == '__main__':
         slidersLinearFrame.hide()
         process_img()
 
+
     cubicSplineButton.clicked.connect(change_mode_to_cubic_spline)
 
     buttonsBox.addWidget(parabolaButton)
     buttonsBox.addWidget(linearButton)
     buttonsBox.addWidget(cubicSplineButton)
 
-
     layout.addLayout(buttonsBox)
 
     window.setLayout(layout)
     window.showMaximized()
     app.exec()
-
-
-
-
-
-
