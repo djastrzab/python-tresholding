@@ -151,7 +151,9 @@ if __name__ == '__main__':
     def save_image():
         if result_img is None:
             return
-        filename = QFileDialog.getSaveFileName(filter="Image (*.tif)")[0]
+        filename = QFileDialog.getSaveFileName(filter="Tagged Image file (*.tif);;Portable Network Graphics (*.png);; "
+                                                      "Joint Photographic Experts Group (*.jpg);; other *.*")[0]
+
         if filename == "":
             return
         print(filename)
