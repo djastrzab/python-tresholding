@@ -21,7 +21,9 @@ def parabola_gaussian_img(img, blurred_img, min_threshold, mid_threshold, max_th
     def threshold(x):
         return coef[0] + x * coef[1] + (x ** 2) * coef[2]
 
-    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
+    return np.array((img >= np.array([threshold(val) for val in range(0, 256)])[blurred_img]) * 255, dtype=np.uint8)
+
+    # return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
 
 
 def gaussian(img, C, reach):
@@ -48,19 +50,21 @@ def cubic_gaussian(img, blurred_img, min_threshold, mid_threshold, max_threshold
     sigmas = np.linalg.solve(A, b).A1
 
     def threshold(val):
-        s1 = (y[0]
-              + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
-              + (3 * sigmas[0]) * (val - x[0]) ** 2
-              + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
-              ) * (val < 127.5)
-        s2 = (y[1]
-              + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
-              + (3 * sigmas[1]) * (val - x[1]) ** 2
-              + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
-              ) * (val >= 127.5)
-        return s1 + s2
+        if val < 127.5:
+            return (
+                y[0]
+                + ((y[0 + 1] - y[0]) / h - h * (sigmas[0 + 1] + 2 * sigmas[0])) * (val - x[0])
+                + (3 * sigmas[0]) * (val - x[0]) ** 2
+                + ((sigmas[0 + 1] - sigmas[0]) / h) * (val - x[0]) ** 3
+            )
+        return (
+            y[1]
+            + ((y[1 + 1] - y[1]) / h - h * (sigmas[1 + 1] + 2 * sigmas[1])) * (val - x[1])
+            + (3 * sigmas[1]) * (val - x[1]) ** 2
+            + ((sigmas[1 + 1] - sigmas[1]) / h) * (val - x[1]) ** 3
+        )
 
-    return np.array((img >= threshold(np.array(blurred_img, dtype=np.float64))) * 255, dtype=np.uint8)
+    return np.array((img >= np.array([threshold(val) for val in range(0, 256)])[blurred_img]) * 255, dtype=np.uint8)
 
 
 def make_slider(v_from, v_to):
@@ -162,7 +166,6 @@ if __name__ == '__main__':
 
     minSliderBox = QVBoxLayout()
     minSlider = make_slider(0, 255)
-    minSlider.setMinimum(-20)
     minSliderBox.addWidget(minSlider)
     minSliderLabel = QLabel(str(minSlider.value()))
     minSliderBox.addWidget(QLabel("min"))
