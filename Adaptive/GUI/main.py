@@ -284,22 +284,22 @@ if __name__ == '__main__':
 
     buttonsBox = QHBoxLayout()
     openButton = QPushButton()
-    openButton.setText("Open")
+    openButton.setText("Otwórz")
     openButton.clicked.connect(open_image)
     buttonsBox.addWidget(openButton)
 
     saveButoon = QPushButton()
-    saveButoon.setText("Save")
+    saveButoon.setText("Zapisz")
     saveButoon.clicked.connect(save_image)
     buttonsBox.addWidget(saveButoon)
 
     batchButoon = QPushButton()
-    batchButoon.setText("Batch mode")
+    batchButoon.setText("Tryb wsadowy")
     batchButoon.clicked.connect(batch_mode)
     buttonsBox.addWidget(batchButoon)
 
     plotButton = QPushButton()
-    plotButton.setText("Show Threshold Plot")
+    plotButton.setText("Wykres progowania")
 
 
     def show_plot():
