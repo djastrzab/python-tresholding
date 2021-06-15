@@ -2,6 +2,7 @@
 /venv/*
 /.idea/*
 /obrazki/*
+/__pycache__/*
 
 __init__.py
 config.py
