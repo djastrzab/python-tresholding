@@ -1,19 +1,10 @@
 # Default ignored files
 /venv/*
 /.idea/*
-/Adaptive/build/*
-/Adaptive/batch test/*
-
-/Adaptive/__pycache__/*
-/Adaptive/GUI/build/*
-/Adaptive/GUI/__pycache__/*
-
+/obrazki/*
 
 __init__.py
 config.py
 config-3.py
 load_config_py2.py
 load_config_py3.py
-
-Adaptive/main.spec
-Adaptive/GUI/main.spec
